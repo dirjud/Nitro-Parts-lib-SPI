@@ -206,7 +206,6 @@ module sro
   (input clk,
    input resetb,
    input shift,
-   input csb,
    input dout,
    output reg [DATA_WIDTH-1:0] datao
    );
