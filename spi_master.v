@@ -75,17 +75,19 @@ module spi_master
    reg 	  state;
 
 `ifdef verilator
-   parameter LOG2_DATA_WIDTH = $clog2(DATA_WIDTH+1);
+   localparam LOG2_DATA_WIDTH = $clog2(DATA_WIDTH+1);
 `else
    function integer log2;
       input integer value;
+      integer 	    count;
       begin
 	 value = value-1;
-	 for (log2=0; value>0; log2=log2+1)
+	 for (count=0; count>0; count=count+1)
 	   value = value>>1;
+	 log2=count;
       end
    endfunction
-   parameter LOG2_DATA_WIDTH = log2(DATA_WIDTH+1);
+   localparam LOG2_DATA_WIDTH = log2(DATA_WIDTH+1);
 `endif   
 
    reg [LOG2_DATA_WIDTH:0] shift_count;
@@ -95,8 +97,8 @@ module spi_master
    wire stop  = shift_count >= 2*DATA_WIDTH-1;
    /* verilator lint_on WIDTH */
    
-   parameter IDLE_STATE = 0,
-	     RUN_STATE = 1;
+   localparam IDLE_STATE = 0,
+              RUN_STATE = 1;
 
    sro #(.DATA_WIDTH(DATA_WIDTH)) sro[NUM_PORTS-1:0]
      (.clk(clk),
