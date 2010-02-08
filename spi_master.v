@@ -69,22 +69,22 @@ module spi_master
    );
 
    reg [NUM_PORTS-1:0] dout_s;
-   reg 	[CLK_DIVIDER_WIDTH-1:0]  clk_count;
+   reg  [CLK_DIVIDER_WIDTH-1:0]  clk_count;
    wire [CLK_DIVIDER_WIDTH-1:0]  next_clk_count = clk_count + 1;
    wire pulse = next_clk_count == (clk_divider >> 1);
-   reg 	  state;
+   reg    state;
 
 `ifdef verilator
    localparam LOG2_DATA_WIDTH = $clog2(DATA_WIDTH+1);
 `else
    function integer log2;
       input integer value;
-      integer 	    count;
+      integer       count;
       begin
-	 value = value-1;
-	 for (count=0; count>0; count=count+1)
-	   value = value>>1;
-	 log2=count;
+         value = value-1;
+         for (count=0; value>0; count=count+1)
+           value = value>>1;
+         log2=count;
       end
    endfunction
    localparam LOG2_DATA_WIDTH = log2(DATA_WIDTH+1);
@@ -118,57 +118,57 @@ module spi_master
 
    always @(posedge clk or negedge resetb) begin
       if(!resetb) begin
-	 clk_count <= 0;
-	 shift_count <= 0;
-	 sclk  <= 1;
-	 csb   <= 1;
-	 state <= IDLE_STATE;
-	 busy  <= 0;
-	 done  <= 0;
+         clk_count <= 0;
+         shift_count <= 0;
+         sclk  <= 1;
+         csb   <= 1;
+         state <= IDLE_STATE;
+         busy  <= 0;
+         done  <= 0;
       end else begin
-	 // generate the pulse train
-	 if(pulse) begin
-	    clk_count <= 0;
-	 end else begin
-	    clk_count <= next_clk_count;
-	 end
+         // generate the pulse train
+         if(pulse) begin
+            clk_count <= 0;
+         end else begin
+            clk_count <= next_clk_count;
+         end
 
-	 
-	 // generate csb
-   	 if(state == IDLE_STATE) begin
-	    csb  <= 1;
-	    shift_count <= 0;
-	    done <= 0;
-   	    if(go && !busy) begin // the !busy condition here allows the user to hold go high and this will then run transactions back-to-back at maximum speed where busy drops at for at least one clock cycle but we stay in this idle state for two clock cycles. Staying in idle state for two cycles probably isn't a big deal since the serial clock is running slower anyway.
-   	       state  <= RUN_STATE;
-	       busy   <= 1;
-	    end else begin
-	       busy   <= 0;
-	    end
-	 end else begin
-	    if(pulse) begin
-	       if(stop) begin
-		  csb <= 1;
-		  state <= IDLE_STATE;
-		  done  <= 1;
-	       end else begin
-		  csb <= 0;
-		  if(!csb) begin 
-		     shift_count <= shift_count + 1;
-		  end
-	       end
-	    end
-   	 end
+         
+         // generate csb
+         if(state == IDLE_STATE) begin
+            csb  <= 1;
+            shift_count <= 0;
+            done <= 0;
+            if(go && !busy) begin // the !busy condition here allows the user to hold go high and this will then run transactions back-to-back at maximum speed where busy drops at for at least one clock cycle but we stay in this idle state for two clock cycles. Staying in idle state for two cycles probably isn't a big deal since the serial clock is running slower anyway.
+               state  <= RUN_STATE;
+               busy   <= 1;
+            end else begin
+               busy   <= 0;
+            end
+         end else begin
+            if(pulse) begin
+               if(stop) begin
+                  csb <= 1;
+                  state <= IDLE_STATE;
+                  done  <= 1;
+               end else begin
+                  csb <= 0;
+                  if(!csb) begin 
+                     shift_count <= shift_count + 1;
+                  end
+               end
+            end
+         end
 
-	 // generate sclk
-	 if(pulse) begin
-	    if((CPHA==1 && state==RUN_STATE && !stop) || 
-	       (CPHA==0 && !csb)) begin
-	       sclk <= !sclk;
-	    end else begin
-	       sclk <= CPOL;
-	    end
-	 end
+         // generate sclk
+         if(pulse) begin
+            if((CPHA==1 && state==RUN_STATE && !stop) || 
+               (CPHA==0 && !csb)) begin
+               sclk <= !sclk;
+            end else begin
+               sclk <= CPOL;
+            end
+         end
       end
    end
 endmodule // spi_master
@@ -190,13 +190,13 @@ module sri
 
    always @(posedge clk or negedge resetb) begin
       if(!resetb) begin
-	 sr_reg <= 0;
+         sr_reg <= 0;
       end else begin
-	 if(sample) begin
-	    sr_reg <= datai;
-	 end else if(shift) begin
-	    sr_reg <= sr_reg << 1;
-	 end
+         if(sample) begin
+            sr_reg <= datai;
+         end else if(shift) begin
+            sr_reg <= sr_reg << 1;
+         end
       end
    end   
 endmodule
@@ -211,17 +211,17 @@ module sro
    input dout,
    output reg [DATA_WIDTH-1:0] datao
    );
-   reg 			   dout_s;
+   reg                     dout_s;
    
    always @(posedge clk or negedge resetb) begin
       if(!resetb) begin
-	 dout_s <= 0;
-	 datao <= 0;
+         dout_s <= 0;
+         datao <= 0;
       end else begin
-	 dout_s <= dout;
-	 if(shift) begin
-	    datao <= { datao[DATA_WIDTH-2:0], dout_s };
-	 end
+         dout_s <= dout;
+         if(shift) begin
+            datao <= { datao[DATA_WIDTH-2:0], dout_s };
+         end
       end
    end
 endmodule
