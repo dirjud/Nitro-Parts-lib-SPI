@@ -115,8 +115,11 @@ module spi_master
       .shift(pulse && !csb && (shift_count[0] == 1)),
       .din(din));
 
-
+`ifdef SYNC_RESET
+   always @(posedge clk) begin
+`else      
    always @(posedge clk or negedge resetb) begin
+`endif      
       if(!resetb) begin
          clk_count <= 0;
          shift_count <= 0;
@@ -188,7 +191,11 @@ module sri
    reg [DATA_WIDTH-1:0] sr_reg;
    assign din = sr_reg[DATA_WIDTH-1];
 
+`ifdef SYNC_RESET
+   always @(posedge clk) begin
+`else      
    always @(posedge clk or negedge resetb) begin
+`endif      
       if(!resetb) begin
          sr_reg <= 0;
       end else begin
@@ -213,7 +220,11 @@ module sro
    );
    reg                     dout_s;
    
+`ifdef SYNC_RESET
+   always @(posedge clk) begin
+`else      
    always @(posedge clk or negedge resetb) begin
+`endif      
       if(!resetb) begin
          dout_s <= 0;
          datao <= 0;
