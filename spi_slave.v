@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009 Ubixum, Inc. 
+ * Copyright (C) 2014 Brooksee, Inc. 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@
 // Date:      10/31/2009
 // Desc: Implements a low level SPI slave interface. 
 //
-//       THIS IS NOT SYNTHESIZABLE.
+//       Runs directly off sclk, which may not work for synthesis
 //
 //       The clock polarity and phasing of this master is set via the
 //       CPOL and CPHA inputs. See
@@ -30,7 +30,9 @@
 
 
 module spi_slave
-  #(parameter DATA_WIDTH=16)
+  #(parameter DATA_WIDTH=16,
+    parameter INPUT_SAMPLE_AND_HOLD=1
+    )
   (input CPOL, 
    input CPHA,
    
@@ -43,25 +45,40 @@ module spi_slave
    input sclk
    );
 
+   reg [7:0] countp, countn;
    reg [DATA_WIDTH-1:0] sro_p, sro_n, sri_p, sri_n;
-   assign dout = (CPOL ^ CPHA) ? sro_p[DATA_WIDTH-1] : sro_n[DATA_WIDTH-1];
+   wire [DATA_WIDTH-1:0] sro_p1,sro_n1;
+   assign sro_p1 = (INPUT_SAMPLE_AND_HOLD) ? sro_p : datai << countp;
+   assign sro_n1 = (INPUT_SAMPLE_AND_HOLD) ? sro_n : datai << countn;
+
+   assign dout = (CPOL ^ CPHA) ? sro_p1[DATA_WIDTH-1] : sro_n1[DATA_WIDTH-1];
    assign datao= (CPOL ^ CPHA) ? sri_n : sri_p;
-   
+
    always @(posedge sclk or posedge csb) begin
       if(csb) begin
 	 sro_p <= datai;
+	 countp <= 0;
       end else begin
-	 sro_p <= sro_p << 1;
-	 sri_p <= (sri_p << 1) | din;
+	 if(INPUT_SAMPLE_AND_HOLD) begin
+	    sro_p <= sro_p << 1;
+	 end else begin
+	    countp <= countp + 1;
+	 end
+	 sri_p <= { sri_p[DATA_WIDTH-2:0], din };
       end
    end
 
    always @(negedge sclk or posedge csb) begin
       if(csb) begin
 	 sro_n <= datai;
+	 countn <= 0;
       end else begin
-	 sro_n <= sro_n << 1;
-	 sri_n <= (sri_n << 1) | din;
+	 if(INPUT_SAMPLE_AND_HOLD) begin
+	    sro_n <= sro_n << 1;
+	 end else begin
+	    countn <= countn + 1;
+	 end
+	 sri_n <= { sri_n[DATA_WIDTH-2:0], din };
       end
    end
 

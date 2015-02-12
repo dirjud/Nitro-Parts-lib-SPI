@@ -48,7 +48,8 @@
 module spi_master
   #(parameter DATA_WIDTH=16,
     NUM_PORTS=1,
-    CLK_DIVIDER_WIDTH=8
+    CLK_DIVIDER_WIDTH=8,
+    SAMPLE_PHASE=0
     )
   (input clk,
    input resetb,
@@ -96,6 +97,7 @@ module spi_master
    /* verilator lint_off WIDTH */
    wire stop  = shift_count >= 2*DATA_WIDTH-1;
    /* verilator lint_on WIDTH */
+   reg 	stop_s;
    
    localparam IDLE_STATE = 0,
               RUN_STATE = 1;
@@ -103,7 +105,7 @@ module spi_master
    sro #(.DATA_WIDTH(DATA_WIDTH)) sro[NUM_PORTS-1:0]
      (.clk(clk),
       .resetb(resetb),
-      .shift(pulse && !csb && (shift_count[0] == 0)),
+      .shift(pulse && !csb && (shift_count[0] == SAMPLE_PHASE) && !stop_s),
       .dout(dout),
       .datao(datao));
 
@@ -112,7 +114,7 @@ module spi_master
       .resetb(resetb),
       .datai(datai),
       .sample(go && (state == IDLE_STATE)), // we condition on state so that if the user holds 'go' high, this will sample only at the start of the transfer
-      .shift(pulse && !csb && (shift_count[0] == 1)),
+      .shift(pulse && !csb && (shift_count[0] == 1) && !stop),
       .din(din));
 
 `ifdef SYNC_RESET
@@ -128,10 +130,12 @@ module spi_master
          state <= IDLE_STATE;
          busy  <= 0;
          done  <= 0;
+	 stop_s <= 0;
       end else begin
          // generate the pulse train
          if(pulse) begin
             clk_count <= 0;
+	    stop_s <= stop;
          end else begin
             clk_count <= next_clk_count;
          end
@@ -151,8 +155,8 @@ module spi_master
          end else begin
             if(pulse) begin
                if(stop) begin
-                  csb <= 1;
-                  state <= IDLE_STATE;
+                  //csb <= 1;
+                  if(done) state <= IDLE_STATE;
                   done  <= 1;
                end else begin
                   csb <= 0;
@@ -166,7 +170,7 @@ module spi_master
          // generate sclk
          if(pulse) begin
             if((CPHA==1 && state==RUN_STATE && !stop) || 
-               (CPHA==0 && !csb)) begin
+               (CPHA==0 && !csb && !stop)) begin
                sclk <= !sclk;
             end else begin
                sclk <= CPOL;
