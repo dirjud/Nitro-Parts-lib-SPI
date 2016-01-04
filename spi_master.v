@@ -36,7 +36,7 @@
 //
 //       Set the CLK_DIVIDER_WIDTH at instantiation. The rate of
 //       'sclk' to the device is then set by the input 'clk_divider'.
-//       'clk_divider' must be at least 2. 
+//       'clk_divider' must be at least 4. 
 //
 //       The clock polarity and phasing of this master is set via the
 //       CPOL and CPHA inputs. See
@@ -69,7 +69,6 @@ module spi_master
    output reg sclk
    );
 
-   reg [NUM_PORTS-1:0] dout_s;
    reg  [CLK_DIVIDER_WIDTH-1:0]  clk_count;
    wire [CLK_DIVIDER_WIDTH-1:0]  next_clk_count = clk_count + 1;
    wire pulse = next_clk_count == (clk_divider >> 1);
@@ -156,8 +155,13 @@ module spi_master
             if(pulse) begin
                if(stop) begin
                   //csb <= 1;
-                  if(done) state <= IDLE_STATE;
-                  done  <= 1;
+                  if(done) begin
+		     state <= IDLE_STATE;
+		     done <= 0;
+		     busy <= 0;
+		  end else begin
+                     done  <= 1;
+		  end
                end else begin
                   csb <= 0;
                   if(!csb) begin 
